@@ -17,6 +17,6 @@ cargo build
 cargo build --release
 ```
 
-## More
+## [Crates.io](https://crates.io/)
 
-More details
+Most of these small Projects are [cli tools](https://crates.io/categories/command-line-utilities)
