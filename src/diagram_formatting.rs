@@ -96,6 +96,7 @@ fn format_file(
     }
 }
 
+
 pub fn format_paths(
     root_path: &str,
     children: Vec<(String, FileType)>,
@@ -112,6 +113,7 @@ pub fn format_paths(
         None => Vec::new(),
     }
 }
+
 
 #[cfg(test)]
 mod test {
@@ -159,6 +161,7 @@ mod test {
             },
         ];
 
+        
         let variant1 = vec![
             FormattedEntry {
                 name: ".".to_string(),
