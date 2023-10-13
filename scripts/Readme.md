@@ -1,24 +1,22 @@
-# RustInstallHelper
+# RustInstallHelper (version 0)
 
-![RustInstallHelper Logo](rust_install_helper_logo.png)
+![RustInstallHelper Logo will go here...](rust_install_helper_logo.png)
 
-Are you a Rust developer working in an environment with limited or [no internet access](https://users.rust-lang.org/t/developing-with-rust-offline/8679)? Are you struggling to manage Rust toolchains and dependencies on a Windows machine under these constraints? If so, the `RustInstallHelper` class is here to save the day!
-
-## Introduction
+Are you a Rust developer working in an environment with limited or [no internet access](https://users.rust-lang.org/t/developing-with-rust-offline/8679)? Are you struggling to manage Rust toolchains and dependencies on a Windows machine under these constraints? If so, the `RustInstallHelper` module is here to save the day!
 
 The `RustInstallHelper` is a powerful, user-friendly tool designed to assist developers working offline or in environments with restricted internet access. It provides a set of static methods that mimic the behavior of essential Rust toolchain management functions, helping you overcome the challenges faced by developers like Mark, who posted the question on Stack Overflow.
 
-## Problems We Solve
+## Features
 
-### 1. Installing Rust Toolchains
+### Installing Rust Toolchains
 
-Many developers, especially beginners, face difficulties installing Rust toolchains on machines with no internet access. The `RustInstallHelper` class simplifies this process, allowing you to install and manage Rust toolchains with ease.
+Many developers, especially beginners, face difficulties installing Rust toolchains on machines with no internet access. The `RustInstallHelper` module simplifies this process, allowing you to install and manage Rust toolchains with ease.
 
 ```powershell
 [RustInstallHelper]::InstallRustToolchain("1.53.0")
 ```
 
-### 2. Managing Rust Dependencies
+### Managing Rust Dependencies
 
 Managing dependencies is a critical aspect of Rust development. `RustInstallHelper` provides methods to assist you in managing dependencies locally.
 
@@ -26,17 +24,17 @@ Managing dependencies is a critical aspect of Rust development. `RustInstallHelp
 [RustInstallHelper]::InstallCargoDependencies("my_crate")
 ```
 
-### 3. Installing Rust Proxies
+### Installing Rust Proxies
 
-If you require Rust proxies for your offline development, the `RustInstallHelper` class can help you install and configure them effortlessly.
+If you require Rust proxies for your offline development, the `RustInstallHelper` module can help you install and configure them effortlessly.
 
 ```powershell
 [RustInstallHelper]::InstallRustProxies()
 ```
 
-### 4. Simplified Project Building
+### Simplified Project Building
 
-The class also simplifies building Rust projects, ensuring that your projects are compiled correctly and efficiently.
+The module also simplifies building Rust projects, ensuring that your projects are compiled correctly and efficiently.
 
 ```powershell
 [RustInstallHelper]::BuildRustProject("my_project")
@@ -54,42 +52,13 @@ try {
 }
 ```
 
-## Getting Started
-
-### Prerequisites
-
-Before using `RustInstallHelper`, make sure you have the following:
-
-- A Windows machine (offline or with restricted internet access)
-- A Rust development environment
-- PowerShell (version 5.1 or newer)
-
-### Installation
-
-1. Download the `RustInstallHelper.ps1` script.
-2. Include the script in your project directory or desired location.
-
 ### Usage
-
-To start using the `RustInstallHelper` class, follow these steps:
-
-1. Open a PowerShell session.
-2. Navigate to the directory where the `RustInstallHelper.ps1` script is located.
-3. Import the script into your PowerShell session:
-
-```powershell
-. .\RustInstallHelper.ps1
-```
-
-4. You're now ready to use the `RustInstallHelper` methods to manage Rust toolchains, dependencies, proxies, and more.
-
-## Example
-
-Here's a simple example of how you can use `RustInstallHelper` to install a Rust toolchain:
 
 ```powershell
 [RustInstallHelper]::InstallRustToolchain("1.53.0")
 ```
+
+> MORE feature to come!
 
 ## Contributors
 
@@ -101,8 +70,6 @@ The `RustInstallHelper` project is open-source and welcomes contributions from t
 
 ## Support
 
-If you encounter any issues or have questions, please open an issue on the [GitHub repository](https://github.com/rust-install-helper) or reach out to our community for assistance.
+If you encounter any issues or have questions, please open an issue on the [GitHub repository](https://github.com/alainQtec/RustInstallHelper)
 
-Happy Rust coding! 🦀
-
-![Rust Logo](rust_logo.png)
+Happy coding! 🦀
