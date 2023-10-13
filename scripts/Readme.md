@@ -2,9 +2,11 @@
 
 ![RustInstallHelper Logo will go here...](rust_install_helper_logo.png)
 
-Are you a Rust developer working in an environment with limited or [no internet access](https://users.rust-lang.org/t/developing-with-rust-offline/8679)? Are you struggling to manage Rust toolchains and dependencies on a Windows machine under these constraints? If so, the `RustInstallHelper` module is here to save the day!
+Are you a Rust developer working in an environment with limited or [no internet access](https://users.rust-lang.org/t/developing-with-rust-offline/8679)? or some similar problem ... I'm still thinking about it!
 
-The `RustInstallHelper` is a powerful, user-friendly tool designed to assist developers working offline or in environments with restricted internet access. It provides a set of static methods that mimic the behavior of essential Rust toolchain management functions, helping you overcome the challenges faced by developers like Mark, who posted the question on Stack Overflow.
+The psmodule is mean't to be a user-friendly tool designed to assist developers on any os (but especially on windows).
+
+It provides a set of static methods anf functions that mimic the behavior of essential Rust toolchain management functions, helping you overcome the challenges faced by developers like Mark, who posted the question on Stack Overflow.
 
 ## Features
 
