@@ -1,14 +1,18 @@
-﻿# .SYNOPSIS
-#     rust development environment ocal Setup script
+﻿using namespace System.Management.Automation;
+
+# .SYNOPSIS
+#     function Initialize-RustSandbox  does what its name says, its Rust sandbox setup.
 # .DESCRIPTION
-#     A longer description of the script, its purpose, common use cases, etc.
+#     rust development environment Local Setup script.
+#     Does all the installations needed to get up & running with rust development.
 # .NOTES
-#     Information or caveats about the script e.g. 'This script is not supported in Linux'
+#     Yes this is supported in Linux, Mac & Windows as long as you have powershell installed.
 # .LINK
-#     Specify a URI to a help page, this will show when Get-Help -Online is used.
+#     https://github.com/alainQtec/Rust-SandBox/blob/main/Setup.ps1
 # .EXAMPLE
 #     ./Setup.ps1 -Verbose
 #     Explanation of the script or its result. You can include multiple examples with additional .EXAMPLE lines
+
 
 $toolsDir = "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)"
 $url = 'https://static.rust-lang.org/rustup/archive/1.25.1/i686-pc-windows-msvc/rustup-init.exe'
@@ -34,7 +38,7 @@ class EnvVar {
 
     [void] Apply ([System.Diagnostics.ProcessStartInfo] $cmd) {
         $oldValue = [System.Environment]::GetEnvironmentVariable($this.name, [System.EnvironmentVariableTarget]::Process)
-        if ($oldValue -ne $null) {
+        if ($null -ne $oldValue) {
             $parts = $oldValue -split ';'
             if ($parts -contains $this.value) {
                 return
@@ -42,13 +46,32 @@ class EnvVar {
         }
         $cmd.EnvironmentVariables[$this.name] = $this.value
     }
+    [System.Diagnostics.ProcessStartInfo] PrependPath ([string] $name, [string[]] $values, [System.Diagnostics.ProcessStartInfo] $cmd) {
+        if (!$cmd.EnvironmentVariables.ContainsKey($name)) {
+            $cmd.EnvironmentVariables[$name] = $values -join [System.IO.Path]::PathSeparator
+        } else {
+            $existing = $cmd.EnvironmentVariables[$name]
+            $newPath = $values + $existing.Split([System.IO.Path]::PathSeparator)
+            $cmd.EnvironmentVariables[$name] = $newPath -join [System.IO.Path]::PathSeparator
+        }
+        return $cmd
+    }
+
+    [void] Increment ([string] $name, [System.Diagnostics.ProcessStartInfo] $cmd) {
+        $this.value = [System.Environment]::GetEnvironmentVariable($name, [System.EnvironmentVariableTarget]::Process)
+        if ([int]::TryParse($this.value, [ref]$null)) {
+            $this.value = [int]::Parse($this.value) + 1
+            $cmd.EnvironmentVariables[$name] = $this.value.ToString()
+        }
+    }
 }
+
 
 class EnvVarManager {
     [void] PrependPath ([string] $name, [string[]] $prepend, [System.Diagnostics.ProcessStartInfo] $cmd) {
         $oldValue = [System.Environment]::GetEnvironmentVariable($name, [System.EnvironmentVariableTarget]::Process)
         $parts = @()
-        if ($oldValue -ne $null) {
+        if ($null -ne $oldValue) {
             $parts = $oldValue -split ';'
         }
         foreach ($path in $prepend) {
@@ -96,32 +119,30 @@ function GetComponentForBinary {
     param (
         [string]$binary
     )
-
     $binaryPrefix = $binary -replace "\\.(exe|ps1)$"
-
-    switch ($binaryPrefix) {
-        "rustc", "rustdoc" {
+    switch ($true) {
+        ($binaryPrefix -in ("rustc", "rustdoc")) {
             return "rustc"
         }
-        "cargo" {
+        ($binaryPrefix -eq "cargo") {
             return "cargo"
         }
-        "rust-lldb", "rust-gdb", "rust-gdbgui" {
+        ($binaryPrefix -in ("rust-lldb", "rust-gdb", "rust-gdbgui")) {
             return "rustc"  # These are not always available
         }
-        "rls" {
+        ($binaryPrefix -eq "rls") {
             return "rls"
         }
-        "cargo-clippy" {
+        ($binaryPrefix -eq "cargo-clippy") {
             return "clippy"
         }
-        "clippy-driver" {
+        ($binaryPrefix -eq "clippy-driver") {
             return "clippy"
         }
-        "cargo-miri" {
+        ($binaryPrefix -eq "cargo-miri") {
             return "miri"
         }
-        "rustfmt", "cargo-fmt" {
+        ($binaryPrefix -eq "rustfmt", "cargo-fmt") {
             return "rustfmt"
         }
         default {
@@ -142,7 +163,7 @@ class UpdateStatus {
 class InstallMethod {
     [System.Management.Automation.PSCustomObject] $cfg
     [System.Management.Automation.PSCustomObject] $desc
-    [string] $profile
+    [string] $_Profile
     [System.Management.Automation.PSCustomObject] $update_hash
     [System.Management.Automation.PSCustomObject] $dl_cfg
     [bool] $force
@@ -158,7 +179,7 @@ class InstallMethod {
     InstallMethod (
         [System.Management.Automation.PSCustomObject] $cfg,
         [System.Management.Automation.PSCustomObject] $desc,
-        [string] $profile,
+        [string] $_Profile,
         [System.Management.Automation.PSCustomObject] $update_hash,
         [System.Management.Automation.PSCustomObject] $dl_cfg,
         [bool] $force,
@@ -173,7 +194,7 @@ class InstallMethod {
     ) {
         $this.cfg = $cfg
         $this.desc = $desc
-        $this.profile = $profile
+        $this._Profile = $_Profile
         $this.update_hash = $update_hash
         $this.dl_cfg = $dl_cfg
         $this.force = $force
@@ -189,6 +210,7 @@ class InstallMethod {
 
     [UpdateStatus] Install () {
         # Implement the installation logic here and return the appropriate UpdateStatus object
+        return $null
     }
 
     # Implement the remaining methods in the InstallMethod class
@@ -209,22 +231,18 @@ class Uninstall {
 }
 
 
-
-
-
-
-class rspackage {
+class RsPackage {
     [string] $name = "rustup"
     [string] $description = "rustup: the Rust toolchain installer"
     [version] $version = "1.25.1"
     [string] $authors = "Mozilla"
     [string] $projectUrl = "https://rustup.rs"
-    $unzipLocation = $toolsDir
-    $fileType = 'exe'
-    $url = $url
-    $url64bit = $url64
-    $checksumType64 = 'sha256'
-    $silentArgs = '-v -y' # it seems we need '-v -y' starting with 1.9.0 to get rustup copied to the .cargo\bin folder.
+    [string]$unzipLocation = $toolsDir
+    [string]$fileType
+    [uri] $url
+    [uri] $url64bit
+    [string] $checksumType64 = 'sha256'
+    [string] $silentArgs = '-v -y' # it seems we need '-v -y' starting with 1.9.0 to get rustup copied to the .cargo\bin folder.
     hidden [int[]] $validExitCodes = @(0, -1073741515)
     hidden [string] $licenseUrl = "https://github.com/rust-lang/rustup.rs#license"
     hidden [bool] $requireLicenseAcceptance = $true
@@ -232,7 +250,7 @@ class rspackage {
     hidden [string] $docsUrl = "https://github.com/rust-lang/rustup.rs/blob/master/README.md"
     hidden [string] $bugTrackerUrl = "https://github.com/rust-lang/rustup.rs/issues"
     hidden [string[]] $tags = ('rustup', 'rust')
-    rspackage() {}
+    RsPackage() {}
 }
 
 # If you’re using Linux or macOS, open a terminal and enter the following command:
@@ -352,7 +370,7 @@ class RustInstallHelper {
     }
 
     static [string] ErrorToString([System.Exception]$CurrError) {
-        if ($CurrError -ne $null) {
+        if ($null -ne $CurrError) {
             return $CurrError.ToString()
         }
         return "No error provided."
@@ -385,6 +403,25 @@ class RustInstallHelper {
         }
 
         return $null
+    }
+
+    static [void] EnableTabCompletion() {
+        # if Linux Bash
+        # &rustup completions bash > ~/.local/share/bash-completion/completions/rustup
+        # if Linux Fish
+        # &mkdir -p ~/.config/fish/completions
+        # &rustup completions fish > ~/.config/fish/completions/rustup.fish
+        # if Linux Zsh
+        # &rustup completions zsh > ~/.zfunc/_rustup
+
+
+        # if (macOS/Homebrew)
+        # &rustup completions bash /etc/bash_completion.d/rustup.bash-completion
+
+        # if Windows PowerShell v5.0+
+        # &rustup completions powershell >> $PROFILE.CurrentUserCurrentHost
+        # # or
+        # &rustup completions powershell | Out-String | Invoke-Expression
     }
 
     static [System.Management.Automation.ErrorRecord] DoPreInstallSanityChecks([bool] $noPrompt) {
@@ -423,23 +460,29 @@ class RustInstallHelper {
         #     Write-Host "Error Message: $($errorRecord.Exception.Message)"
         # }
     }
+    static [string] ResolveToolchainName([string]$partialChannel, [string]$hostTriple) {
+        return ''
+    }
 
+    static [string] GetTargetTriple([string]$HostOrBuild) {
+        return ''
+    }
     static [System.Management.Automation.ErrorRecord] DoPreInstallOptionsSanityChecks([System.Management.Automation.PSCustomObject] $opts) {
         # Verify that the installation options are vaguely sane
-        $hostTriple = if ($opts.default_host_triple -eq $null) { [System.Management.Automation.PSTask]::CompletionInputOrOutput } else { $opts.default_host_triple }
-        $partialChannel = if ($opts.default_toolchain -eq $null -or $opts.default_toolchain -eq 'None') { "stable" } else { $opts.default_toolchain }
+        $hostTriple = $opts.default_host_triple
+        $partialChannel = if ($null -eq $opts.default_toolchain -or $opts.default_toolchain -eq 'None') { "stable" } else { $opts.default_toolchain }
 
         try {
-            $resolved = [ResolvableToolchainName]::Resolve($partialChannel, $hostTriple)
+            $resolved = [RustInstallHelper]::ResolveToolchainName($partialChannel, $hostTriple)
         } catch {
             $errorMessage = "Pre-checks for host and toolchain failed: $($_.Exception.Message)`n" +
             "If you are unsure of suitable values, the 'stable' toolchain is the default.`n" +
-            "Valid host triples look something like: $([TargetTriple]::FromHostOrBuild())"
+            "Valid host triples look something like: $([RustInstallHelper]::GetTargetTriple())"
             $errorRecord = New-Object System.Management.Automation.ErrorRecord -ArgumentList (New-Object System.Exception $errorMessage), "OptionsSanityCheckFailed", "NotSpecified", $null
             return $errorRecord
         }
 
-        return $null
+        return $resolved
         # InstallOpts
 
         # Example usage
@@ -461,7 +504,7 @@ class RustInstallHelper {
         $cargoHomeBin = Join-Path $cargoHome "bin"
         $rustupHome = [RustInstallHelper]::GetRustupHome()
 
-        if (-not $noModifyPath) {
+        if (!$noModifyPath) {
             $message = @"
 I'm going to ask you the value of each of these installation options.
 You may simply press the Enter key to leave unchanged.
@@ -475,7 +518,6 @@ To complete the installation, rustup will add the following to your PATH:
 
 "@
         }
-
         return $message
     }
 
@@ -492,7 +534,7 @@ To complete the installation, rustup will add the following to your PATH:
             "stable (default)"
         }
 
-        $profile = $opts.profile
+        $_Profile = $opts.profile
 
         $modifyPath = if (-not $opts.noModifyPath) { "yes" } else { "no" }
 
@@ -501,7 +543,7 @@ Current installation options:
 
 - Default host triple: $defaultHostTriple
 - Default toolchain: $defaultToolchain
-- Profile: $profile
+- Profile: $_Profile
 - Modify PATH variable: $modifyPath
 "@
 
@@ -514,13 +556,13 @@ Current installation options:
 
         $defaultHostTriple = [RustInstallHelper]::QuestionStr("Default host triple?", $opts.defaultHostTriple)
         $defaultToolchain = [RustInstallHelper]::QuestionStr("Default toolchain? (stable/beta/nightly/none)", $opts.defaultToolchain)
-        $profile = [RustInstallHelper]::QuestionStr("Profile (which tools and data to install)? (stable/beta/nightly/none)", $opts.profile)
+        $_profile = [RustInstallHelper]::QuestionStr("Profile (which tools and data to install)? (stable/beta/nightly/none)", $opts.profile)
         $noModifyPath = ![RustInstallHelper]::QuestionBool("Modify PATH variable?", $opts.noModifyPath)
 
         $customizedOpts = @{
             defaultHostTriple = $defaultHostTriple
             defaultToolchain  = $defaultToolchain
-            profile           = $profile
+            profile           = $_profile
             noModifyPath      = $noModifyPath
         }
 
@@ -585,6 +627,7 @@ Current installation options:
     static [System.IO.DirectoryInfo] GetCargoHome() {
         # Implement your logic to get the cargo home directory
         # You can use [System.IO.Path]::Combine and [System.IO.DirectoryInfo] or another method here
+        return $null
     }
 
     static [void] InstallProxies() {
@@ -605,23 +648,23 @@ class Toolchain {
     [System.IO.FileInfo] $path
 
     Toolchain ([System.Management.Automation.PSCustomObject] $cfg, [string] $name) {
-        $path = $cfg.toolchain_path($name)
+        $_path = $cfg.toolchain_path($name)
         if (-Not $this.Exists($cfg, $name)) {
             throw "ToolchainNotInstalled: $name"
         }
 
         $this.cfg = $cfg
         $this.name = $name
-        $this.path = $path
+        $this.path = $_path
     }
 
-    [bool] Exists ([System.Management.Automation.PSCustomObject] $cfg, [string] $name) {
-        $path = $cfg.toolchain_path($name)
-        if (-Not (Test-Path -Path $path -PathType Container)) {
+    [bool] Exists ([System.Management.Automation.PSCustomObject]$cfg, [string] $name) {
+        $_path = $cfg.toolchain_path($name)
+        if (-Not (Test-Path -Path $_path -PathType Container)) {
             return $false
         }
 
-        return (Test-Path -Path $path -ChildPath "$($name)$([System.Environment]::ExeSuffix)")
+        return (Test-Path -Path $_path -ChildPath "$($name)$([System.Environment]::ExeSuffix)")
     }
 
     [System.Management.Automation.PSCustomObject] CFG () {
@@ -702,9 +745,9 @@ class Toolchain {
     [System.Diagnostics.ProcessStartInfo] CreateCommand ([string] $binary) {
         $binary = if ($binary -match ".*\.(exe|msi)$") { $binary } else { "$binary$([System.Environment]::ExeSuffix)" }
         $binPath = Join-Path -Path $this.path.FullName -ChildPath "bin\$binary"
-
-        if (Test-Path -Path $binPath) {
-            $path = $binPath
+        $_path = $null
+        if (Test-Path -Path $binPath -ErrorAction Ignore) {
+            $_path = $binPath
         } else {
             $recursionCount = [System.Environment]::GetEnvironmentVariable("RUST_RECURSION_COUNT", [System.EnvironmentVariableTarget]::Process)
             if ([int]::TryParse($recursionCount, [ref]$null) -and $recursionCount -ge 0) {
@@ -712,11 +755,10 @@ class Toolchain {
                     throw "'$binary' is not installed for the custom toolchain '$($this.name)'. This is a custom toolchain and cannot use 'rustup component add'."
                 }
             }
-
-            $path = $binary
+            $_path = $binary
         }
 
-        $cmd = New-Object System.Diagnostics.ProcessStartInfo $path
+        $cmd = New-Object System.Diagnostics.ProcessStartInfo $_path
         $this.SetEnv($cmd)
         return $cmd
     }
@@ -738,28 +780,28 @@ class Toolchain {
 class Utils {
     [string] CargoHome () {
         # Implement the `utils::cargo_home()` function here.
+        return $null
     }
 }
 
-class EnvVar {
-    [System.Diagnostics.ProcessStartInfo] PrependPath ([string] $name, [string[]] $values, [System.Diagnostics.ProcessStartInfo] $cmd) {
-        if (-Not $cmd.EnvironmentVariables.ContainsKey($name)) {
-            $cmd.EnvironmentVariables[$name] = $values -join [System.IO.Path]::PathSeparator
-        } else {
-            $existing = $cmd.EnvironmentVariables[$name]
-            $newPath = $values + $existing.Split([System.IO.Path]::PathSeparator)
-            $cmd.EnvironmentVariables[$name] = $newPath -join [System.IO.Path]::PathSeparator
-        }
+
+
+export function Initialize-RustSandbox {
+    [CmdletBinding()]
+    param (
+
+    )
+
+    begin {
+
     }
 
-    [void] Increment ([string] $name, [System.Diagnostics.ProcessStartInfo] $cmd) {
-        $value = [System.Environment]::GetEnvironmentVariable($name, [System.EnvironmentVariableTarget]::Process)
-        if ([int]::TryParse($value, [ref]$null)) {
-            $value = [int]::Parse($value) + 1
-            $cmd.EnvironmentVariables[$name] = $value.ToString()
-        }
+    process {
+
+    }
+
+    end {
+
     }
 }
-
-# You will need to implement the rest of the functions and classes mentioned in your Rust code.
 
