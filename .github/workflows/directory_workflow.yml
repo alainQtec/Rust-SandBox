@@ -1,0 +1,27 @@
+name: build_directory_md
+on:
+  push:
+    branches: [master]
+
+jobs:
+  MainSequence:
+    name: DIRECTORY.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+      - name: Setup Git Specs
+        run: |
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+      - name: Update DIRECTORY.md
+        run: |
+         cargo run --manifest-path=.github/workflows/scripts/build_directory/Cargo.toml
+      - name: Commit DIRECTORY.md
+        run: |
+         git add DIRECTORY.md
+         git commit -m "Update DIRECTORY.md [skip actions]" ||  true
+         git push origin HEAD:$GITHUB_REF || true
